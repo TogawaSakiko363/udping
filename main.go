@@ -25,6 +25,7 @@ var (
 	forceIPv4  bool
 	forceIPv6  bool
 	resolvedIP string
+	pingCount  int
 )
 
 var (
@@ -44,6 +45,7 @@ func init() {
 	flag.IntVar(&interval, "interval", defaultInterval, "Interval in milliseconds")
 	flag.BoolVar(&forceIPv4, "4", false, "Force IPv4")
 	flag.BoolVar(&forceIPv6, "6", false, "Force IPv6")
+	flag.IntVar(&pingCount, "n", 0, "Number of pings")
 }
 
 func randomString(length int) string {
@@ -141,6 +143,7 @@ func main() {
 		fmt.Println("options:")
 		fmt.Println("  -len        Payload length in bytes (default: 64)")
 		fmt.Println("  -interval   Interval between packets in milliseconds (default: 1000)")
+		fmt.Println("  -n          Number of pings (default: 0)")
 		fmt.Println("  -4          Force IPv4")
 		fmt.Println("  -6          Force IPv6")
 		fmt.Println()
@@ -150,6 +153,7 @@ func main() {
 		fmt.Println("  udpping example.com 4000")
 		fmt.Println("  udpping example.com 4000 -4")
 		fmt.Println("  udpping 44.55.66.77 4000 -len=400 -interval=2000")
+		fmt.Println("  udpping 223.5.5.5 53 -n 4")
 	}
 
 	flag.Parse()
@@ -175,10 +179,15 @@ func main() {
 				fmt.Sscanf(arg, "-len=%d", &payloadLen)
 			} else if strings.HasPrefix(arg, "-interval=") {
 				fmt.Sscanf(arg, "-interval=%d", &interval)
+			} else if strings.HasPrefix(arg, "-n=") {
+				fmt.Sscanf(arg, "-n=%d", &pingCount)
 			} else if arg == "-4" {
 				forceIPv4 = true
 			} else if arg == "-6" {
 				forceIPv6 = true
+			} else if arg == "-n" && i+1 < len(remainingArgs) {
+				i++
+				fmt.Sscanf(remainingArgs[i], "%d", &pingCount)
 			}
 		}
 	}
@@ -213,7 +222,7 @@ func main() {
 
 	intervalDuration := time.Duration(interval) * time.Millisecond
 
-	for {
+	for pingCount == 0 || count < pingCount {
 		payload := randomString(payloadLen)
 		timeOfSend := time.Now()
 
@@ -283,4 +292,6 @@ func main() {
 			time.Sleep(timeRemaining)
 		}
 	}
+
+	printStatistics()
 }
